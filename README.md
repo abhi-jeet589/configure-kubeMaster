@@ -24,10 +24,9 @@ Example Playbook
  - name: "Configure Kuberentes Master"
    hosts: master
    roles:
-   - kubernetes-master-configuration
+   - configure_kubemaster
 
 Author Information
 ------------------
 
 You can contact me @ abhijeetkarmakar23@gmail.com
-
