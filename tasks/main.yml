@@ -1,0 +1,78 @@
+---
+# tasks file for kubernetes-master-configuration
+  - name: "Installing docker"
+    package:
+      name: "docker"
+      state: present
+  - name: "Enabling docker services"
+    service:
+      name: "docker"
+      state: started
+      enabled: yes
+  - name: "Configuring the repository to download Kubeadm,kubelet and kubectl"
+    copy:
+      src: "kubernetes-master-configuration/files/kubernetes.repo"
+      dest: "/etc/yum.repos.d/kubernetes.repo"
+  - name: "Installing Kubeadm, kubelet and kubectl"
+    package:
+      name: "{{  item  }}"
+      state: present
+    loop:
+    - "kubeadm"
+    - "kubelet"
+    - "kubectl"
+  - name: "Starting Kubelet service"
+    service:
+      name: "kubelet"
+      state: started
+      enabled: yes
+  - name: "Pulling necessary images"
+    command:
+      cmd: "kubeadm config images pull"
+  - name: "Configuring Docker"
+    copy:
+      src: "kubernetes-master-configuration/files/daemon.json"
+      dest: "/etc/docker/daemon.json"
+  - name: "Restarting Docker services"
+    service:
+      name: "docker"
+      state: restarted
+  - name: "Installing TC driver"
+    package:
+      name: "iproute-tc"
+      state: present
+  - name: "Configuring TC driver files"
+    copy:
+      src: "kubernetes-master-configuration/files/k8s.conf"
+      dest: "/etc/sysctl.d/k8s.conf"
+  - name: "Refreshing sysctl"
+    shell:
+      cmd: "sysctl --system"
+  - name: "Configuring Kubernetes and starting the service"
+    command:
+      cmd: "kubeadm init --pod-network-cidr=10.244.0.0/16  --ignore-preflight-errors=NumCPU --ignore-preflight-errors=Mem"
+  - name: "Configuring Kubectl in Master"
+    file:
+      path: "$HOME/.kube"
+      state: directory
+  - name: "Configuring kubeconfig"
+    copy:
+      dest: "$HOME/.kube/config"
+      src: "/etc/kubernetes/admin.conf"
+      remote_src: yes
+      owner: "root"
+      group: "root"
+  - name: "Installing CNI for Kubernetes"
+    command:
+      cmd: "kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml"
+  - name: "Getting the Token to connect slaves to master"
+    shell:
+      cmd: "kubeadm token create --print-join-command"
+    register: join_command
+  - debug:
+      var: join_command.stdout
+  - name: "Giving final touches"
+    add_host:
+      name: "DUMMY_HOST"
+      join_cmd:  "{{  join_command.stdout  }}"
+
