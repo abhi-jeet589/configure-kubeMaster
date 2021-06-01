@@ -1,4 +1,4 @@
-Role Name
+Configure-Kubernetes-Master
 =========
 
 Kubernetes Master Configuration Role will help you to configure kubernetes master that is deployed on any public cloud or local server. For this you are required to just supply the inventory file to the ansible playbook provided with this role.
